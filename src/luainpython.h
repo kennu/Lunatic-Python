@@ -33,7 +33,17 @@ PyAPI_DATA(PyTypeObject) LuaObject_Type;
 
 #define LuaObject_Check(op) PyObject_TypeCheck(op, &LuaObject_Type)
 
-PyObject *LuaConvert(lua_State *L, int n);
+/* Type object to hold Lua state */
+typedef struct {
+	PyObject_HEAD
+	lua_State *LuaState;
+} LuaStateObject;
+
+PyAPI_DATA(PyTypeObject) LuaStateObjectType;
+
+//#define LuaStateObject_Check(op) PyObject_TypeCheck(op, &LuaStateObject_Type)
+
+PyObject *LuaConvert(lua_State *LuaState, int n);
 
 extern lua_State *LuaState;
 
