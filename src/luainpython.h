@@ -25,13 +25,14 @@
 
 typedef struct {
 	PyObject_HEAD
+	PyObject *state;
 	int ref;
 	int refiter;
 } LuaObject;
 
-PyAPI_DATA(PyTypeObject) LuaObject_Type;
+PyAPI_DATA(PyTypeObject) LuaObjectType;
 
-#define LuaObject_Check(op) PyObject_TypeCheck(op, &LuaObject_Type)
+#define LuaObject_Check(op) PyObject_TypeCheck(op, &LuaObjectType)
 
 /* Type object to hold Lua state */
 typedef struct {
@@ -41,11 +42,7 @@ typedef struct {
 
 PyAPI_DATA(PyTypeObject) LuaStateObjectType;
 
-//#define LuaStateObject_Check(op) PyObject_TypeCheck(op, &LuaStateObject_Type)
-
-PyObject *LuaConvert(lua_State *LuaState, int n);
-
-extern lua_State *LuaState;
+PyObject *LuaConvert(LuaStateObject *state, int n);
 
 DL_EXPORT(void) initlua(void);
 

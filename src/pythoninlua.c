@@ -28,6 +28,67 @@
 #include "pythoninlua.h"
 #include "luainpython.h"
 
+PyObject *LuaConvertPy(lua_State *LuaState, int n)
+{
+	PyObject *ret = NULL;
+
+	switch (lua_type(LuaState, n)) {
+
+		case LUA_TNIL:
+			Py_INCREF(Py_None);
+			ret = Py_None;
+			break;
+
+		case LUA_TSTRING: {
+			size_t len;
+			const char *s = lua_tolstring(LuaState, n, &len);
+			ret = PyString_FromStringAndSize(s, len);
+			break;
+		}
+
+		case LUA_TNUMBER: {
+			lua_Number num = lua_tonumber(LuaState, n);
+#ifdef LUA_NUMBER_DOUBLE
+			if (num != (long)num) {
+				ret = PyFloat_FromDouble(n);
+			} else
+#endif
+			{
+				ret = PyInt_FromLong((long)num);
+			}
+			break;
+		}
+
+		case LUA_TBOOLEAN:
+			if (lua_toboolean(LuaState, n)) {
+				Py_INCREF(Py_True);
+				ret = Py_True;
+			} else {
+				Py_INCREF(Py_False);
+				ret = Py_False;
+			}
+			break;
+
+		case LUA_TUSERDATA: {
+			py_object *obj = check_py_object(LuaState, n);
+
+			if (obj) {
+				Py_INCREF(obj->o);
+				ret = obj->o;
+				break;
+			}
+
+			/* Otherwise go on and handle as custom. */
+		}
+
+		default:
+			//ret = LuaObject_New(LuaState, n);
+			break;
+	}
+
+	return ret;
+}
+
 static int py_asfunc_call(lua_State *L);
 
 void stackDump(lua_State *L)
@@ -195,7 +256,7 @@ static int py_object_call(lua_State *L)
 	}
 	
 	for (i = 0; i != nargs; i++) {
-		PyObject *arg = LuaConvert(L, i+2);
+		PyObject *arg = LuaConvertPy(L, i+2);
 		if (!arg) {
 			luaL_error(L, "failed to convert argument #%d", i+1);
 			Py_DECREF(args);
@@ -220,7 +281,7 @@ static int _p_object_newindex_set(lua_State *L, py_object *obj,
 				  int keyn, int valuen)
 {
 	PyObject *value;
-	PyObject *key = LuaConvert(L, keyn);
+	PyObject *key = LuaConvertPy(L, keyn);
 
 	if (!key) {
 		luaL_argerror(L, 1, "failed to convert key");
@@ -228,7 +289,7 @@ static int _p_object_newindex_set(lua_State *L, py_object *obj,
 	}
 
 	if (!lua_isnil(L, valuen)) {
-		value = LuaConvert(L, valuen);
+		value = LuaConvertPy(L, valuen);
 		if (!value) {
 			Py_DECREF(key);
 			luaL_argerror(L, 1, "failed to convert value");
@@ -283,7 +344,7 @@ static int py_object_newindex(lua_State *L)
 		return 0;
 	}
 
-	value = LuaConvert(L, 3);
+	value = LuaConvertPy(L, 3);
 	if (!value) {
 		luaL_argerror(L, 1, "failed to convert value");
 		return 0;
@@ -303,7 +364,7 @@ static int py_object_newindex(lua_State *L)
 
 static int _p_object_index_get(lua_State *L, py_object *obj, int keyn)
 {
-	PyObject *key = LuaConvert(L, keyn);
+	PyObject *key = LuaConvertPy(L, keyn);
 	PyObject *item;
 	int ret = 0;
 
@@ -430,7 +491,7 @@ static int py_run(lua_State *L, int eval)
 	char *buffer = NULL;
 	PyObject *m, *d, *o;
 	int ret = 0;
-	int len;
+	size_t len;
 
 	s = luaL_checkstring(L, 1);
 	if (!s)
@@ -643,7 +704,7 @@ LUA_API int luaopen_python(lua_State *L)
 	lua_pop(L, 1);
 
 	/* Initialize Lua state in Python territory */
-	if (!LuaState) LuaState = L;
+	//if (!GlobalLuaState) GlobalLuaState = L;
 
 	/* Initialize Python interpreter */
 	if (!Py_IsInitialized()) {
