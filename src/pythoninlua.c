@@ -28,65 +28,16 @@
 #include "pythoninlua.h"
 #include "luainpython.h"
 
+/**
+ * Convert a Lua object to Python. This proxies over to 
+ * the Python side to call LuaConvert().
+ */
 PyObject *LuaConvertPy(lua_State *LuaState, int n)
 {
-	PyObject *ret = NULL;
-
-	switch (lua_type(LuaState, n)) {
-
-		case LUA_TNIL:
-			Py_INCREF(Py_None);
-			ret = Py_None;
-			break;
-
-		case LUA_TSTRING: {
-			size_t len;
-			const char *s = lua_tolstring(LuaState, n, &len);
-			ret = PyString_FromStringAndSize(s, len);
-			break;
-		}
-
-		case LUA_TNUMBER: {
-			lua_Number num = lua_tonumber(LuaState, n);
-#ifdef LUA_NUMBER_DOUBLE
-			if (num != (long)num) {
-				ret = PyFloat_FromDouble(n);
-			} else
-#endif
-			{
-				ret = PyInt_FromLong((long)num);
-			}
-			break;
-		}
-
-		case LUA_TBOOLEAN:
-			if (lua_toboolean(LuaState, n)) {
-				Py_INCREF(Py_True);
-				ret = Py_True;
-			} else {
-				Py_INCREF(Py_False);
-				ret = Py_False;
-			}
-			break;
-
-		case LUA_TUSERDATA: {
-			py_object *obj = check_py_object(LuaState, n);
-
-			if (obj) {
-				Py_INCREF(obj->o);
-				ret = obj->o;
-				break;
-			}
-
-			/* Otherwise go on and handle as custom. */
-		}
-
-		default:
-			//ret = LuaObject_New(LuaState, n);
-			break;
-	}
-
-	return ret;
+	lua_getglobal(LuaState, "_PyLuaState");
+	LuaStateObject *state = (LuaStateObject *)lua_touserdata(LuaState, lua_gettop(LuaState));
+	lua_pop(LuaState, 1);
+	return LuaConvert(state, n);
 }
 
 static int py_asfunc_call(lua_State *L);

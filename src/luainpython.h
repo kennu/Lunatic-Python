@@ -43,6 +43,7 @@ typedef struct {
 PyAPI_DATA(PyTypeObject) LuaStateObjectType;
 
 PyObject *LuaConvert(LuaStateObject *state, int n);
+LuaStateObject *GetGlobalLuaState(void);
 
 DL_EXPORT(void) initlua(void);
 

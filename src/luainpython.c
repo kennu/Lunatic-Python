@@ -509,6 +509,15 @@ static void LuaStateObject_init(LuaStateObject *self)
 	/* Open libraries for the state */
 	luaL_openlibs(NewLuaState);
 	
+	/* Store Python Lua state object in the lua_State */
+	lua_pushlightuserdata(NewLuaState, self);
+	lua_setglobal(NewLuaState, "_PyLuaState");
+	
+	/* Initialize the other side */
+	if (lua_cpcall(NewLuaState, luaopen_python, NULL) != 0) {
+		PyErr_SetString(PyExc_RuntimeError, "can't open python lib in lua");
+	}
+	
 	/* Reset state stack */
 	lua_settop(NewLuaState, 0);
 	
