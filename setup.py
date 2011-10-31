@@ -6,9 +6,9 @@ if os.path.isfile("MANIFEST"):
     os.unlink("MANIFEST")
 
 # You may have to change these
-LUA_LIBS = ["lua"]
-LUA_INCDIR = ["/opt/local/include"]
-LUA_LIBDIR = ["/opt/local/lib"]
+LUA_LIBS = ["lua5.1"]
+LUA_INCDIR = ["/opt/local/include", "/usr/include/lua5.1"]
+LUA_LIBDIR = ["/opt/local/lib", "/usr/lib/i386-linux"]
 
 setup(name="lunatic-python",
       version = "1.0",
