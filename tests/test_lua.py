@@ -1,6 +1,7 @@
 """
 >>> import lua
 >>> import sys
+>>> import __main__
 
 # Single state tests
 
@@ -29,8 +30,8 @@ True
 ...     def __repr__(self): return '<MyClass>'
 ... 
 >>> obj = MyClass()
->>> sys.modules['__main__'].obj = obj
->>> sys.modules['__main__'].lua = lua
+>>> __main__.obj = obj
+>>> __main__.lua = lua
 >>> obj
 <MyClass>
 
