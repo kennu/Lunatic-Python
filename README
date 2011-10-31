@@ -1,3 +1,21 @@
+About This Fork
+===============
+Kenneth Falck <kennu@iki.fi> 2011 http://kfalck.net
+
+This is a fork of the original Lunatic-Python that allows creation of
+parallel Lua states. If you use the module level functions to execute
+Lua code, a default global state is created for them. Otherwise you
+can use new_state() to create new states like this:
+
+import lua
+state1 = lua.new_state()
+state1.globals()['hello'] = 'running in state 1'
+state2 = lua.new_state()
+state2.globals()['hello'] = 'running in state 2'
+state1.execute("print(hello)")
+state2.execute("print(hello)")
+
+
 Lunatic Python
 ==============
 
