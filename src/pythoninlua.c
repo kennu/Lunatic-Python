@@ -654,9 +654,6 @@ LUA_API int luaopen_python(lua_State *L)
 	luaL_register(L, NULL, py_object_lib);
 	lua_pop(L, 1);
 
-	/* Initialize Lua state in Python territory */
-	//if (!GlobalLuaState) GlobalLuaState = L;
-
 	/* Initialize Python interpreter */
 	if (!Py_IsInitialized()) {
 		PyObject *luam, *mainm, *maind;

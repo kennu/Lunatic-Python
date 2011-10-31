@@ -208,7 +208,6 @@ static PyObject *LuaCall(LuaStateObject *state, PyObject *args)
 			PyErr_SetString(PyExc_TypeError,
 				        "failed to convert return");
 			lua_settop(state->LuaState, 0);
-			Py_DECREF(ret);
 			return NULL;
 		}
 	} else if (nargs > 1) {
@@ -242,11 +241,11 @@ static PyObject *LuaCall(LuaStateObject *state, PyObject *args)
 
 static PyObject *LuaObject_New(LuaStateObject *state, int n)
 {
-	LuaObject *obj = PyObject_New(LuaObject, &LuaObjectType);
+	LuaObject *obj = (LuaObject *)PyObject_CallObject((PyObject *)&LuaObjectType, NULL);
 	if (obj) {
 		lua_pushvalue(state->LuaState, n);
-		Py_INCREF(state);
 		obj->state = (PyObject *)state;
+		Py_INCREF(obj->state);
 		obj->ref = luaL_ref(state->LuaState, LUA_REGISTRYINDEX);
 		obj->refiter = LUA_NOREF;
 	}
@@ -454,7 +453,7 @@ static PyMappingMethods LuaObject_as_mapping = {
 PyTypeObject LuaObjectType = {
 	PyObject_HEAD_INIT(NULL)
 	0,			/*ob_size*/
-	"lua.custom",		/*tp_name*/
+	"lua.LuaObject",		/*tp_name*/
 	sizeof(LuaObject),	/*tp_basicsize*/
 	0,			/*tp_itemsize*/
 	(destructor)LuaObject_dealloc, /*tp_dealloc*/
@@ -499,7 +498,7 @@ PyTypeObject LuaObjectType = {
  * State object
  ********************************************************************************/
 
-static void LuaStateObject_init(LuaStateObject *self)
+static int LuaStateObject_init(LuaStateObject *self, PyObject *args, PyObject *kwds)
 {
 	lua_State *NewLuaState = NULL;
 	
@@ -524,6 +523,7 @@ static void LuaStateObject_init(LuaStateObject *self)
 	/* Store Lua state in wrapper */
 	self->LuaState = NewLuaState;
 	
+	return 0;
 }
 
 static void LuaStateObject_dealloc(LuaStateObject *self)
@@ -632,7 +632,7 @@ static PyMethodDef luastate_methods[] = {
 	{"eval",	LuaState_eval,		METH_VARARGS,		NULL},
 	{"globals",	LuaState_globals,	METH_NOARGS,		NULL},
 	{"require", 	LuaState_require,	METH_VARARGS,		NULL},
-	{NULL,		NULL}
+	{NULL,		NULL,			0,			NULL}
 };
 
 /* Python type object to hold LuaState */
@@ -647,25 +647,25 @@ PyTypeObject LuaStateObjectType = {
 	0,			/*tp_getattr*/
 	0,			/*tp_setattr*/
 	0,			/*tp_compare*/
-	LuaStateObject_str,		/*tp_repr*/
+	LuaStateObject_str,	/*tp_repr*/
 	0,			/*tp_as_number*/
 	0,			/*tp_as_sequence*/
-	0,	/*tp_as_mapping*/
+	0,			/*tp_as_mapping*/
 	0,			/*tp_hash*/
-	0,//(ternaryfunc)LuaStateObject_call,	      /*tp_call*/
-	LuaStateObject_str,		 /*tp_str*/
-	0,//LuaStateObject_getattr,	/*tp_getattro*/
-	0,//LuaStateObject_setattr,	/*tp_setattro*/
+	0,	     		/*tp_call*/
+	LuaStateObject_str,	/*tp_str*/
+	0,			/*tp_getattro*/
+	0,			/*tp_setattro*/
 	0,			/*tp_as_buffer*/
-	Py_TPFLAGS_DEFAULT, /*tp_flags*/
+	Py_TPFLAGS_DEFAULT, 	/*tp_flags*/
 	"Lua state object",	/*tp_doc*/
 	0,			/*tp_traverse*/
 	0,			/*tp_clear*/
 	0,			/*tp_richcompare*/
 	0,			/*tp_weaklistoffset*/
-	0,	/*tp_iter*/
-	0, /*tp_iternext*/
-	luastate_methods,       		/*tp_methods*/
+	0,			/*tp_iter*/
+	0, 			/*tp_iternext*/
+	luastate_methods,      	/*tp_methods*/
 	0,       		/*tp_members*/
 	0,                      /*tp_getset*/
 	0,                      /*tp_base*/
@@ -673,7 +673,7 @@ PyTypeObject LuaStateObjectType = {
 	0,                      /*tp_descr_get*/
 	0,                      /*tp_descr_set*/
 	0,                      /*tp_dictoffset*/
-	(initproc)LuaStateObject_init,			/*tp_init*/
+	(initproc)LuaStateObject_init,	/*tp_init*/
 	0,			/*tp_alloc*/
 	0,			/*tp_new*/
 	0,			/*tp_free*/
@@ -731,7 +731,7 @@ static PyMethodDef lua_methods[] = {
 	{"globals",	Lua_globals,	METH_NOARGS,		NULL},
 	{"require", 	Lua_require,	METH_VARARGS,		NULL},
 	{"new_state",	Lua_new_state,	METH_NOARGS,		NULL},
-	{NULL,		NULL}
+	{NULL,		NULL,		0,			NULL}
 };
 
 DL_EXPORT(void)
@@ -752,18 +752,8 @@ initlua(void)
 	if (!m)
 		return;
 	
+	Py_INCREF(&LuaObjectType);
+	PyModule_AddObject(m, "LuaObject", (PyObject *)&LuaObjectType);
 	Py_INCREF(&LuaStateObjectType);
 	PyModule_AddObject(m, "LuaState", (PyObject *)&LuaStateObjectType);
-	
-	/*
-	if (!GlobalLuaState) {
-		GlobalLuaState = lua_newstate(py_lua_alloc, py_lua_module_panic);
-		luaL_openlibs(GlobalLuaState);
-		if (lua_cpcall(GlobalLuaState, luaopen_python, NULL) != 0) {
-			PyErr_SetString(PyExc_RuntimeError,
-					"can't open python lib in lua");
-		}
-		lua_settop(GlobalLuaState, 0);
-	}
-	*/
 }
